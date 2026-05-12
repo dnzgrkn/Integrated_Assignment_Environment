@@ -2,7 +2,6 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
-<?import javafx.scene.control.ColumnConstraints?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.Menu?>
 <?import javafx.scene.control.MenuBar?>
@@ -13,7 +12,7 @@
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
 <?import javafx.scene.control.ToolBar?>
-<?import javafx.scene.input.KeyCodeCombination?>
+<?import javafx.scene.input.KeyCombination?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
@@ -33,24 +32,24 @@
                         <items>
                             <MenuItem fx:id="menuNewProject" text="New Project" onAction="#onNewProject">
                                 <accelerator>
-                                    <KeyCodeCombination code="N" control="DOWN"/>
+                                    <KeyCombination fx:value="Ctrl+N"/>
                                 </accelerator>
                             </MenuItem>
                             <MenuItem fx:id="menuOpenProject" text="Open Project..." onAction="#onOpenProject">
                                 <accelerator>
-                                    <KeyCodeCombination code="O" control="DOWN"/>
+                                    <KeyCombination fx:value="Ctrl+O"/>
                                 </accelerator>
                             </MenuItem>
                             <MenuItem fx:id="menuSaveProject" text="Save Project" disable="true" onAction="#onSaveProject">
                                 <accelerator>
-                                    <KeyCodeCombination code="S" control="DOWN"/>
+                                    <KeyCombination fx:value="Ctrl+S"/>
                                 </accelerator>
                             </MenuItem>
                             <MenuItem fx:id="menuSaveProjectAs" text="Save Project As..." disable="true" onAction="#onSaveProjectAs"/>
                             <SeparatorMenuItem/>
                             <MenuItem fx:id="menuExit" text="Exit" onAction="#onExit">
                                 <accelerator>
-                                    <KeyCodeCombination code="F4" alt="DOWN"/>
+                                    <KeyCombination fx:value="Alt+F4"/>
                                 </accelerator>
                             </MenuItem>
                         </items>
@@ -68,7 +67,7 @@
                         <items>
                             <MenuItem fx:id="menuManual" text="Manual" onAction="#onManual">
                                 <accelerator>
-                                    <KeyCodeCombination code="F1"/>
+                                    <KeyCombination fx:value="F1"/>
                                 </accelerator>
                             </MenuItem>
                             <MenuItem fx:id="menuAbout" text="About IAE" onAction="#onAbout"/>
