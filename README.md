@@ -18,6 +18,17 @@ mvn javafx:run
 mvn test
 ```
 
+### Demo workflow
+
+After `mvn javafx:run`, the window opens with three regions:
+
+- **Menu bar** — File / Edit / Help menus with full accelerators (Ctrl+N, Ctrl+O, Ctrl+S, F1, Alt+F4)
+- **Toolbar** — disabled Run button on the left; progress bar and submission counter on the right
+- **Split pane** — PROJECT panel (name, configuration, dirs, arguments, expected output, run summary) on the left; RESULTS table with four column headers on the right
+- **Status bar** — shows "Ready" on startup; updates after each action
+
+Key smoke-test clicks: Help → About (shows team / version), File → New Project (stub alert), Edit → Manage Configurations (stub alert), File → Open Project (file chooser → loads a `project_data.json`), Edit → Import Configuration (JSON file chooser), File → Exit (confirmation dialog).
+
 ## Project Structure
 
 The codebase follows a four-layer architecture with strict downward dependencies:
