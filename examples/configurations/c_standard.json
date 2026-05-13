@@ -1,0 +1,10 @@
+{
+  "id": "c-test-id-0316",
+  "name": "C Standard Output",
+  "languageType": "C",
+  "compiled": true,
+  "compilerPath": "gcc",
+  "compilerFlags": "-Wall -o main",
+  "runCommand": "./main",
+  "expectedSourceFileName": "main.c"
+}
