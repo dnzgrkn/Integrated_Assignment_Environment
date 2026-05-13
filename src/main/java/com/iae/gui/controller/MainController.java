@@ -1,0 +1,335 @@
+package com.iae.gui.controller;
+
+import com.iae.model.Configuration;
+import com.iae.model.Project;
+import com.iae.model.RunResult;
+import com.iae.persistence.ConfigurationRepository;
+import com.iae.persistence.ProjectRepository;
+import javafx.application.Platform;
+import javafx.fxml.FXML;
+import javafx.scene.Scene;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ChoiceDialog;
+import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.ProgressBar;
+import javafx.scene.control.TableView;
+import javafx.scene.web.WebView;
+import javafx.stage.DirectoryChooser;
+import javafx.stage.FileChooser;
+import javafx.stage.Stage;
+
+import java.io.File;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.List;
+
+public class MainController {
+
+    // Menu items
+    @FXML private MenuItem menuNewProject;
+    @FXML private MenuItem menuOpenProject;
+    @FXML private MenuItem menuSaveProject;
+    @FXML private MenuItem menuSaveProjectAs;
+    @FXML private MenuItem menuExit;
+    @FXML private MenuItem menuEditProject;
+    @FXML private MenuItem menuManageConfigs;
+    @FXML private MenuItem menuImportConfig;
+    @FXML private MenuItem menuExportConfig;
+    @FXML private MenuItem menuManual;
+    @FXML private MenuItem menuAbout;
+
+    // Toolbar
+    @FXML private Button runButton;
+    @FXML private ProgressBar progressBar;
+    @FXML private Label progressLabel;
+
+    // Left panel — project info
+    @FXML private Label lblProjectName;
+    @FXML private Label lblConfigName;
+    @FXML private Label lblSubsDir;
+    @FXML private Label lblArgs;
+    @FXML private Label lblExpected;
+
+    // Left panel — run summary
+    @FXML private Label lblTotal;
+    @FXML private Label lblPassed;
+    @FXML private Label lblFailed;
+    @FXML private Label lblPending;
+
+    // Results table
+    @FXML private TableView<RunResult> resultsTable;
+
+    // Status bar
+    @FXML private Label statusBar;
+
+    // State
+    private Project currentProject;
+    private Path currentProjectDir;
+
+    private final ConfigurationRepository configRepo =
+            new ConfigurationRepository(ConfigurationRepository.defaultDirectory());
+    private final ProjectRepository projectRepo = new ProjectRepository();
+
+    @FXML
+    public void initialize() {
+        setStatus("Ready");
+        refreshUiState();
+    }
+
+    @FXML
+    private void onNewProject() {
+        showInfo("New Project",
+                null,
+                "Project editor is being built by Can Esen. " +
+                "For now, use Open Project to load an existing project_data.json file.");
+    }
+
+    @FXML
+    private void onOpenProject() {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Open Project");
+        chooser.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("Project files (*.json)", "*.json"));
+        File file = chooser.showOpenDialog(getStage());
+        if (file == null) return;
+
+        try {
+            currentProject = projectRepo.loadProject(Paths.get(file.toString()));
+            currentProjectDir = file.toPath().getParent();
+            refreshUiState();
+            setStatus("Opened: " + currentProject.getProjectName());
+        } catch (IOException e) {
+            showError("Open Project Failed", e.getMessage());
+        }
+    }
+
+    @FXML
+    private void onSaveProject() {
+        if (currentProject == null) return;
+        if (currentProjectDir != null) {
+            try {
+                projectRepo.saveProject(currentProject, currentProjectDir);
+                setStatus("Saved: " + currentProject.getProjectName());
+            } catch (IOException e) {
+                showError("Save Failed", e.getMessage());
+            }
+        } else {
+            onSaveProjectAs();
+        }
+    }
+
+    @FXML
+    private void onSaveProjectAs() {
+        if (currentProject == null) return;
+        DirectoryChooser chooser = new DirectoryChooser();
+        chooser.setTitle("Choose project directory");
+        File dir = chooser.showDialog(getStage());
+        if (dir == null) return;
+
+        currentProjectDir = dir.toPath();
+        try {
+            projectRepo.saveProject(currentProject, currentProjectDir);
+            setStatus("Saved: " + currentProject.getProjectName());
+            refreshUiState();
+        } catch (IOException e) {
+            showError("Save Failed", e.getMessage());
+        }
+    }
+
+    @FXML
+    private void onExit() {
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
+        confirm.setTitle("Exit IAE");
+        confirm.setHeaderText(null);
+        confirm.setContentText("Exit IAE? Unsaved changes will be lost.");
+        confirm.showAndWait().ifPresent(btn -> {
+            if (btn == ButtonType.OK) {
+                Platform.exit();
+                System.exit(0);
+            }
+        });
+    }
+
+    @FXML
+    private void onEditProject() {
+        showInfo("Edit Project", null,
+                "Project editor is being implemented by Can Esen — coming soon.");
+    }
+
+    @FXML
+    private void onManageConfigurations() {
+        showInfo("Manage Configurations", null,
+                "Configuration editor is being implemented by Can Esen — coming soon.");
+    }
+
+    @FXML
+    private void onImportConfiguration() {
+        FileChooser chooser = new FileChooser();
+        chooser.setTitle("Import Configuration");
+        chooser.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("JSON files (*.json)", "*.json"));
+        File file = chooser.showOpenDialog(getStage());
+        if (file == null) return;
+
+        try {
+            Configuration imported = configRepo.importFromFile(file.toPath());
+            showInfo("Import Successful", null, "Configuration imported: " + imported.getName());
+            setStatus("Configuration imported: " + imported.getName());
+        } catch (IOException e) {
+            showError("Import Failed", e.getMessage());
+        }
+    }
+
+    @FXML
+    private void onExportConfiguration() {
+        List<Configuration> configs;
+        try {
+            configs = configRepo.loadAll();
+        } catch (IOException e) {
+            showError("Export Failed", e.getMessage());
+            return;
+        }
+
+        if (configs.isEmpty()) {
+            showInfo("Export Configuration", null, "No configurations to export.");
+            return;
+        }
+
+        ChoiceDialog<Configuration> pick = new ChoiceDialog<>(configs.get(0), configs);
+        pick.setTitle("Export Configuration");
+        pick.setHeaderText("Select a configuration to export:");
+        pick.setContentText("Configuration:");
+        pick.showAndWait().ifPresent(chosen -> {
+            FileChooser saveChooser = new FileChooser();
+            saveChooser.setTitle("Export Configuration");
+            saveChooser.setInitialFileName(chosen.getName() + ".json");
+            saveChooser.getExtensionFilters().add(
+                    new FileChooser.ExtensionFilter("JSON files (*.json)", "*.json"));
+            File dest = saveChooser.showSaveDialog(getStage());
+            if (dest == null) return;
+
+            try {
+                configRepo.exportToFile(chosen, dest.toPath());
+                setStatus("Configuration exported: " + chosen.getName());
+            } catch (IOException e) {
+                showError("Export Failed", e.getMessage());
+            }
+        });
+    }
+
+    @FXML
+    private void onManual() {
+        URL manualUrl = getClass().getResource("/com/iae/help/manual.html");
+        if (manualUrl == null) {
+            showInfo("IAE — User Manual", null,
+                    "User manual will be available in the final release.");
+            return;
+        }
+        Stage manualStage = new Stage();
+        manualStage.setTitle("IAE — User Manual");
+        manualStage.setWidth(800);
+        manualStage.setHeight(600);
+        manualStage.setResizable(true);
+        WebView webView = new WebView();
+        webView.getEngine().load(manualUrl.toExternalForm());
+        manualStage.setScene(new Scene(webView));
+        manualStage.show();
+    }
+
+    @FXML
+    private void onAbout() {
+        Alert about = new Alert(Alert.AlertType.INFORMATION);
+        about.setTitle("About IAE");
+        about.setHeaderText("Integrated Assignment Environment");
+        about.setContentText(
+                "Version: 1.0.0-SNAPSHOT\n" +
+                "Course: CE 316 — Programming Languages, Spring 2026\n\n" +
+                "Team 8:\n" +
+                "  Fatih \u00c7elik\n" +
+                "  \u00c7a\u011fan Parlapan\n" +
+                "  Can Esen\n" +
+                "  Deniz G\u00fcrkan\n" +
+                "  Emre Ta\u015fk\u0131n\n\n" +
+                "University: Izmir University of Economics");
+        about.showAndWait();
+    }
+
+    @FXML
+    private void onRunClicked() {
+        showInfo("Run Pipeline", null,
+                "Run pipeline is being implemented by \u00c7a\u011fan Parlapan " +
+                "— service layer integration is scheduled for Wednesday.");
+        setStatus("Run pipeline not yet available.");
+    }
+
+    private void refreshUiState() {
+        if (currentProject == null) {
+            lblProjectName.setText("—");
+            lblConfigName.setText("—");
+            lblSubsDir.setText("—");
+            lblArgs.setText("—");
+            lblExpected.setText("—");
+            lblTotal.setText("0");
+            lblPassed.setText("0");
+            lblFailed.setText("0");
+            lblPending.setText("0");
+        } else {
+            lblProjectName.setText(nvl(currentProject.getProjectName()));
+            Configuration cfg = currentProject.getActiveConfiguration();
+            lblConfigName.setText(cfg != null ? nvl(cfg.getName()) : "—");
+            lblSubsDir.setText(nvl(currentProject.getSubmissionsDirectoryPath()));
+            lblArgs.setText(nvl(currentProject.getCommandLineArguments()));
+            lblExpected.setText(nvl(currentProject.getExpectedOutput()));
+
+            List<RunResult> results = currentProject.getResults();
+            int total = results != null ? results.size() : 0;
+            long passed = results != null
+                    ? results.stream().filter(r -> r.getStatus() == RunResult.Status.PASS).count()
+                    : 0;
+            long failed = total - passed;
+            lblTotal.setText(String.valueOf(total));
+            lblPassed.setText(String.valueOf(passed));
+            lblFailed.setText(String.valueOf(failed));
+            lblPending.setText("0");
+        }
+
+        boolean hasProject = currentProject != null;
+        menuSaveProject.setDisable(!(hasProject && currentProjectDir != null));
+        menuSaveProjectAs.setDisable(!hasProject);
+        menuEditProject.setDisable(!hasProject);
+        runButton.setDisable(!hasProject);
+    }
+
+    private void setStatus(String msg) {
+        statusBar.setText(msg);
+    }
+
+    private Stage getStage() {
+        return (Stage) statusBar.getScene().getWindow();
+    }
+
+    private String nvl(String s) {
+        return (s != null && !s.isBlank()) ? s : "—";
+    }
+
+    private void showInfo(String title, String header, String content) {
+        Alert alert = new Alert(Alert.AlertType.INFORMATION);
+        alert.setTitle(title);
+        alert.setHeaderText(header);
+        alert.setContentText(content);
+        alert.showAndWait();
+    }
+
+    private void showError(String title, String content) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setHeaderText(null);
+        alert.setContentText(content);
+        alert.showAndWait();
+    }
+}
