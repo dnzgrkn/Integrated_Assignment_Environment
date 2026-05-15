@@ -7,6 +7,7 @@ import com.iae.persistence.ConfigurationRepository;
 import com.iae.persistence.ProjectRepository;
 import javafx.application.Platform;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
@@ -83,10 +84,41 @@ public class MainController {
 
     @FXML
     private void onNewProject() {
-        showInfo("New Project",
-                null,
-                "Project editor is being built by Can Esen. " +
-                "For now, use Open Project to load an existing project_data.json file.");
+
+        try {
+
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/com/iae/gui/view/project_editor.fxml")
+            );
+
+            Scene scene = new Scene(loader.load());
+
+            ProjectEditorController controller =
+                    loader.getController();
+
+            controller.setConfigurationRepository(configRepo);
+
+            controller.initCreate(configRepo.loadAll());
+
+            Stage stage = new Stage();
+            stage.setTitle("New Project");
+            stage.setScene(scene);
+            stage.showAndWait();
+
+            if (controller.isSaved()) {
+
+                currentProject = controller.getResult();
+
+                refreshUiState();
+
+                setStatus("Created project: "
+                        + currentProject.getProjectName());
+            }
+
+        } catch (IOException e) {
+
+            showError("New Project Failed", e.getMessage());
+        }
     }
 
     @FXML
@@ -157,14 +189,176 @@ public class MainController {
 
     @FXML
     private void onEditProject() {
-        showInfo("Edit Project", null,
-                "Project editor is being implemented by Can Esen — coming soon.");
+
+        if (currentProject == null) {
+            showError("Edit Project", "No project is open.");
+            return;
+        }
+
+        try {
+
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/com/iae/gui/view/project_editor.fxml")
+            );
+
+            Scene scene = new Scene(loader.load());
+
+            ProjectEditorController controller =
+                    loader.getController();
+
+            controller.setConfigurationRepository(configRepo);
+
+            controller.initEdit(
+                    currentProject,
+                    configRepo.loadAll()
+            );
+
+            Stage stage = new Stage();
+            stage.setTitle("Edit Project");
+            stage.setScene(scene);
+            stage.showAndWait();
+
+            if (controller.isSaved()) {
+
+                currentProject = controller.getResult();
+
+                refreshUiState();
+
+                setStatus("Edited project: "
+                        + currentProject.getProjectName());
+            }
+
+        } catch (IOException e) {
+
+            showError("Edit Project Failed", e.getMessage());
+        }
     }
 
     @FXML
     private void onManageConfigurations() {
-        showInfo("Manage Configurations", null,
-                "Configuration editor is being implemented by Can Esen — coming soon.");
+
+        ChoiceDialog<String> modeDialog = new ChoiceDialog<>(
+                "Create New Configuration",
+                List.of(
+                        "Create New Configuration",
+                        "Edit Existing Configuration"
+                )
+        );
+
+        modeDialog.setTitle("Manage Configurations");
+        modeDialog.setHeaderText("Choose an action");
+        modeDialog.setContentText("Mode:");
+
+        modeDialog.showAndWait().ifPresent(choice -> {
+
+            if (choice.equals("Create New Configuration")) {
+
+                openCreateConfigurationDialog();
+
+            } else {
+
+                openEditConfigurationDialog();
+            }
+        });
+    }
+
+    private void openCreateConfigurationDialog() {
+
+        try {
+
+            FXMLLoader loader = new FXMLLoader(
+                    getClass().getResource("/com/iae/gui/view/config_editor.fxml")
+            );
+
+            Scene scene = new Scene(loader.load());
+
+            ConfigEditorController controller =
+                    loader.getController();
+
+            controller.setRepository(configRepo);
+
+            controller.initCreate();
+
+            Stage stage = new Stage();
+            stage.setTitle("New Configuration");
+            stage.setScene(scene);
+            stage.showAndWait();
+
+            if (controller.isSaved()) {
+
+                setStatus("Created configuration: "
+                        + controller.getResult().getName());
+            }
+
+        } catch (IOException e) {
+
+            showError("Configuration Error", e.getMessage());
+        }
+    }
+
+    private void openEditConfigurationDialog() {
+
+        try {
+
+            List<Configuration> configs = configRepo.loadAll();
+
+            if (configs.isEmpty()) {
+
+                showInfo(
+                        "No Configurations",
+                        null,
+                        "There are no configurations to edit."
+                );
+
+                return;
+            }
+
+            ChoiceDialog<Configuration> pickDialog =
+                    new ChoiceDialog<>(configs.get(0), configs);
+
+            pickDialog.setTitle("Edit Configuration");
+            pickDialog.setHeaderText("Select a configuration");
+            pickDialog.setContentText("Configuration:");
+
+            pickDialog.showAndWait().ifPresent(config -> {
+
+                try {
+
+                    FXMLLoader loader = new FXMLLoader(
+                            getClass().getResource(
+                                    "/com/iae/gui/view/config_editor.fxml")
+                    );
+
+                    Scene scene = new Scene(loader.load());
+
+                    ConfigEditorController controller =
+                            loader.getController();
+
+                    controller.setRepository(configRepo);
+
+                    controller.initEdit(config);
+
+                    Stage stage = new Stage();
+                    stage.setTitle("Edit Configuration");
+                    stage.setScene(scene);
+                    stage.showAndWait();
+
+                    if (controller.isSaved()) {
+
+                        setStatus("Edited configuration: "
+                                + controller.getResult().getName());
+                    }
+
+                } catch (IOException e) {
+
+                    showError("Configuration Error", e.getMessage());
+                }
+            });
+
+        } catch (IOException e) {
+
+            showError("Load Configurations Failed", e.getMessage());
+        }
     }
 
     @FXML
