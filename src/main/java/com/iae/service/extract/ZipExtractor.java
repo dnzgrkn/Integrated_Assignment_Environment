@@ -27,11 +27,13 @@ public class ZipExtractor {
 
         Path destRoot = destinationDir.toAbsolutePath().normalize();
 
+        int entryCount = 0;
         try (InputStream in = Files.newInputStream(zipFilePath);
              ZipInputStream zis = new ZipInputStream(in)) {
 
             ZipEntry entry;
             while ((entry = zis.getNextEntry()) != null) {
+                entryCount++;
                 Path target = destinationDir.resolve(entry.getName()).toAbsolutePath().normalize();
 
                 if (!target.startsWith(destRoot)) {
@@ -53,6 +55,11 @@ public class ZipExtractor {
             throw e;
         } catch (IOException e) {
             throw new ExtractionException("Failed to extract " + zipFilePath + ": " + e.getMessage(), e);
+        }
+
+        // ZipInputStream is lenient: a non-ZIP file reads as zero entries instead of erroring.
+        if (entryCount == 0) {
+            throw new ExtractionException("Not a valid ZIP file: " + zipFilePath);
         }
 
         return destinationDir;
