@@ -94,7 +94,7 @@ public class ProjectRunner {
         return results;
     }
 
-    private RunResult processSingleSubmission(String studentId, Path zip) {
+    private RunResult processSingleSubmission(String studentId, Path zip) throws IOException {
         Configuration config = project.getActiveConfiguration();
         Path workDir = null;
         try {
