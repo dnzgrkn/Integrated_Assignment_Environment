@@ -493,7 +493,7 @@ public class MainController {
         }
 
         boolean hasProject = currentProject != null;
-        menuSaveProject.setDisable(!(hasProject && currentProjectDir != null));
+        menuSaveProject.setDisable(!hasProject);
         menuSaveProjectAs.setDisable(!hasProject);
         menuEditProject.setDisable(!hasProject);
         runButton.setDisable(!hasProject);
