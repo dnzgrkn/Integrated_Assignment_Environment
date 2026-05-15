@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ButtonBar?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.TitledPane?>
+<?import javafx.scene.control.Tooltip?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.iae.gui.controller.ConfigEditorController"
+      prefWidth="480"
+      style="-fx-background-color: white;">
+
+    <HBox style="-fx-background-color: #3c3f41; -fx-padding: 12 16 12 16;">
+        <Label fx:id="dialogTitleLabel"
+               text="New Configuration"
+               style="-fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;"/>
+    </HBox>
+
+    <VBox spacing="16" style="-fx-padding: 20 20 8 20;" VBox.vgrow="ALWAYS">
+
+        <!-- Temel bilgiler -->
+        <TitledPane text="General" collapsible="false"
+                    style="-fx-font-weight: bold;">
+            <GridPane hgap="12" vgap="10">
+                <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
+                <columnConstraints>
+                    <ColumnConstraints minWidth="140" prefWidth="140"/>
+                    <ColumnConstraints hgrow="ALWAYS"/>
+                </columnConstraints>
+
+                <Label text="ID:" GridPane.rowIndex="0" GridPane.columnIndex="0"
+                       style="-fx-text-fill: #888888;"/>
+                <TextField fx:id="idField"
+                           GridPane.rowIndex="0" GridPane.columnIndex="1"
+                           editable="false" promptText="(auto-generated)"
+                           style="-fx-background-color: #f5f5f5;"/>
+
+                <Label text="Name: *" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                <TextField fx:id="nameField"
+                           GridPane.rowIndex="1" GridPane.columnIndex="1"
+                           promptText="e.g. C Standard 17">
+                    <tooltip><Tooltip text="Human-readable label shown in the project editor."/></tooltip>
+                </TextField>
+
+                <Label text="Language Type: *" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                <ComboBox fx:id="languageTypeCombo"
+                          GridPane.rowIndex="2" GridPane.columnIndex="1"
+                          maxWidth="Infinity">
+                    <tooltip><Tooltip text="Choose the programming language for this configuration."/></tooltip>
+                </ComboBox>
+
+                <Label text="Compiled Language:" GridPane.rowIndex="3" GridPane.columnIndex="0"/>
+                <CheckBox fx:id="compiledCheckBox"
+                          GridPane.rowIndex="3" GridPane.columnIndex="1"
+                          text="Yes — requires compilation step">
+                    <tooltip><Tooltip text="Uncheck for interpreted languages (Python, Node.js …)."/></tooltip>
+                </CheckBox>
+
+            </GridPane>
+        </TitledPane>
+
+        <TitledPane fx:id="compilerPane" text="Compiler" collapsible="false"
+                    style="-fx-font-weight: bold;">
+            <GridPane hgap="12" vgap="10">
+                <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
+                <columnConstraints>
+                    <ColumnConstraints minWidth="140" prefWidth="140"/>
+                    <ColumnConstraints hgrow="ALWAYS"/>
+                    <ColumnConstraints minWidth="32" prefWidth="32"/>
+                </columnConstraints>
+
+                <Label text="Compiler Path: *" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                <TextField fx:id="compilerPathField"
+                           GridPane.rowIndex="0" GridPane.columnIndex="1"
+                           promptText="e.g. /usr/bin/gcc">
+                    <tooltip><Tooltip text="Absolute path to the compiler executable."/></tooltip>
+                </TextField>
+                <Button fx:id="browseCompilerButton" text="…"
+                        GridPane.rowIndex="0" GridPane.columnIndex="2"
+                        onAction="#onBrowseCompiler"/>
+
+                <Label text="Compiler Flags:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                <TextField fx:id="compilerFlagsField"
+                           GridPane.rowIndex="1" GridPane.columnIndex="1"
+                           promptText="e.g. -std=c17 -Wall -Wextra">
+                    <tooltip><Tooltip text="Space-separated flags passed to the compiler."/></tooltip>
+                </TextField>
+
+            </GridPane>
+        </TitledPane>
+
+        <TitledPane text="Execution" collapsible="false"
+                    style="-fx-font-weight: bold;">
+            <GridPane hgap="12" vgap="10">
+                <padding><Insets top="10" right="10" bottom="10" left="10"/></padding>
+                <columnConstraints>
+                    <ColumnConstraints minWidth="140" prefWidth="140"/>
+                    <ColumnConstraints hgrow="ALWAYS"/>
+                </columnConstraints>
+
+                <Label text="Run Command: *" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                <TextField fx:id="runCommandField"
+                           GridPane.rowIndex="0" GridPane.columnIndex="1"
+                           promptText="e.g. ./a.out  or  python3 main.py">
+                    <tooltip><Tooltip text="Command used to execute the compiled or interpreted program."/></tooltip>
+                </TextField>
+
+                <Label text="Source File Name: *" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                <TextField fx:id="expectedSourceFileNameField"
+                           GridPane.rowIndex="1" GridPane.columnIndex="1"
+                           promptText="e.g. main.c or solution.py">
+                    <tooltip><Tooltip text="Expected filename inside each student's submission ZIP."/></tooltip>
+                </TextField>
+
+            </GridPane>
+        </TitledPane>
+
+        <Label fx:id="validationLabel"
+               style="-fx-text-fill: #cc0000; -fx-font-size: 11px;"
+               wrapText="true"/>
+
+    </VBox>
+
+    <Separator/>
+
+    <HBox style="-fx-padding: 12 16 12 16;">
+        <Region HBox.hgrow="ALWAYS"/>
+        <ButtonBar>
+            <buttons>
+                <Button fx:id="cancelButton" text="Cancel"
+                        cancelButton="true" onAction="#onCancel"/>
+                <Button fx:id="saveButton" text="Save"
+                        defaultButton="true" onAction="#onSave"
+                        style="-fx-font-weight: bold;"/>
+            </buttons>
+        </ButtonBar>
+    </HBox>
+
+</VBox>
