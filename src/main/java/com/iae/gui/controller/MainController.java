@@ -16,7 +16,9 @@ import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.web.WebView;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
@@ -64,6 +66,10 @@ public class MainController {
 
     // Results table
     @FXML private TableView<RunResult> resultsTable;
+    @FXML private TableColumn<RunResult, String> colStudentId;
+    @FXML private TableColumn<RunResult, RunResult.Status> colStatus;
+    @FXML private TableColumn<RunResult, String> colCapturedOutput;
+    @FXML private TableColumn<RunResult, String> colErrorMessage;
 
     // Status bar
     @FXML private Label statusBar;
@@ -78,8 +84,16 @@ public class MainController {
 
     @FXML
     public void initialize() {
+        initResultsTable();
         setStatus("Ready");
         refreshUiState();
+    }
+
+    private void initResultsTable() {
+        colStudentId.setCellValueFactory(new PropertyValueFactory<>("studentId"));
+        colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
+        colCapturedOutput.setCellValueFactory(new PropertyValueFactory<>("capturedOutput"));
+        colErrorMessage.setCellValueFactory(new PropertyValueFactory<>("errorMessage"));
     }
 
     @FXML
