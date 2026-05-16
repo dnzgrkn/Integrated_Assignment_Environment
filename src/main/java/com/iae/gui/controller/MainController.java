@@ -5,7 +5,9 @@ import com.iae.model.Project;
 import com.iae.model.RunResult;
 import com.iae.persistence.ConfigurationRepository;
 import com.iae.persistence.ProjectRepository;
+import com.iae.service.ProjectRunner;
 import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -510,10 +512,60 @@ public class MainController {
 
     @FXML
     private void onRunClicked() {
-        showInfo("Run Pipeline", null,
-                "Run pipeline is being implemented by \u00c7a\u011fan Parlapan " +
-                "— service layer integration is scheduled for Wednesday.");
-        setStatus("Run pipeline not yet available.");
+        if (currentProject == null) return;
+
+        // Clear previous run state
+        resultsTable.getItems().clear();
+        currentProject.getResults().clear();
+        progressBar.setProgress(0);
+        progressLabel.setText("0 / 0 submissions");
+        setStatus("Running...");
+        runButton.setDisable(true);
+
+        Task<List<RunResult>> task = new Task<>() {
+            @Override
+            protected List<RunResult> call() throws Exception {
+                ProjectRunner runner = new ProjectRunner(currentProject);
+                runner.addListener(new ProjectRunner.RunListener() {
+                    @Override
+                    public void onSubmissionStarted(String studentId) {
+                        Platform.runLater(() -> setStatus("Processing " + studentId + "..."));
+                    }
+
+                    @Override
+                    public void onSubmissionCompleted(RunResult result) {
+                        Platform.runLater(() -> resultsTable.getItems().add(result));
+                    }
+
+                    @Override
+                    public void onProgress(int completed, int total) {
+                        Platform.runLater(() -> {
+                            progressBar.setProgress((double) completed / total);
+                            progressLabel.setText(completed + " / " + total + " submissions");
+                        });
+                    }
+
+                    @Override
+                    public void onAllCompleted() {
+                        Platform.runLater(() -> {
+                            runButton.setDisable(false);
+                            setStatus("Run complete.");
+                        });
+                    }
+                });
+                return runner.runAll();
+            }
+        };
+
+        task.setOnFailed(e -> {
+            runButton.setDisable(false);
+            Throwable ex = task.getException();
+            showError("Run Failed", ex != null ? ex.getMessage() : "Unknown error");
+        });
+
+        Thread t = new Thread(task);
+        t.setDaemon(true);
+        t.start();
     }
 
     private void refreshUiState() {
