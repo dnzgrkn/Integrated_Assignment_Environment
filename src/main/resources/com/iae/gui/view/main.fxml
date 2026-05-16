@@ -149,10 +149,10 @@
                 <Label text="RESULTS" style="-fx-font-weight: bold; -fx-font-size: 11px;"/>
                 <TableView fx:id="resultsTable" VBox.vgrow="ALWAYS">
                     <columns>
-                        <TableColumn text="Student ID" prefWidth="105"/>
-                        <TableColumn text="Status" prefWidth="105"/>
-                        <TableColumn text="Captured Output" prefWidth="245"/>
-                        <TableColumn text="Error / Mismatch" prefWidth="245"/>
+                        <TableColumn fx:id="colStudentId" text="Student ID" prefWidth="105"/>
+                        <TableColumn fx:id="colStatus" text="Status" prefWidth="105"/>
+                        <TableColumn fx:id="colCapturedOutput" text="Captured Output" prefWidth="245"/>
+                        <TableColumn fx:id="colErrorMessage" text="Error / Mismatch" prefWidth="245"/>
                     </columns>
                     <columnResizePolicy>
                         <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>

@@ -5,7 +5,9 @@ import com.iae.model.Project;
 import com.iae.model.RunResult;
 import com.iae.persistence.ConfigurationRepository;
 import com.iae.persistence.ProjectRepository;
+import com.iae.service.ProjectRunner;
 import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
@@ -16,7 +18,11 @@ import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.control.TableCell;
+import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.Tooltip;
+import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.web.WebView;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
@@ -25,6 +31,7 @@ import javafx.stage.Stage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -64,6 +71,10 @@ public class MainController {
 
     // Results table
     @FXML private TableView<RunResult> resultsTable;
+    @FXML private TableColumn<RunResult, String> colStudentId;
+    @FXML private TableColumn<RunResult, RunResult.Status> colStatus;
+    @FXML private TableColumn<RunResult, String> colCapturedOutput;
+    @FXML private TableColumn<RunResult, String> colErrorMessage;
 
     // Status bar
     @FXML private Label statusBar;
@@ -78,8 +89,55 @@ public class MainController {
 
     @FXML
     public void initialize() {
+        initResultsTable();
         setStatus("Ready");
         refreshUiState();
+    }
+
+    private void initResultsTable() {
+        colStudentId.setCellValueFactory(new PropertyValueFactory<>("studentId"));
+
+        colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
+        colStatus.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(RunResult.Status item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    setText(item.toString());
+                    switch (item) {
+                        case PASS -> setStyle("-fx-background-color: #c8e6c9;");
+                        case FAIL -> setStyle("-fx-background-color: #ffe0b2;");
+                        default   -> setStyle("-fx-background-color: #ffcdd2;");
+                    }
+                }
+            }
+        });
+
+        colCapturedOutput.setCellValueFactory(new PropertyValueFactory<>("capturedOutput"));
+        colCapturedOutput.setCellFactory(col -> truncatingCell());
+
+        colErrorMessage.setCellValueFactory(new PropertyValueFactory<>("errorMessage"));
+        colErrorMessage.setCellFactory(col -> truncatingCell());
+    }
+
+    private static TableCell<RunResult, String> truncatingCell() {
+        return new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setTooltip(null);
+                } else {
+                    String display = item.length() > 80 ? item.substring(0, 80) + "..." : item;
+                    setText(display);
+                    setTooltip(new Tooltip(item));
+                }
+            }
+        };
     }
 
     @FXML
@@ -455,10 +513,113 @@ public class MainController {
 
     @FXML
     private void onRunClicked() {
-        showInfo("Run Pipeline", null,
-                "Run pipeline is being implemented by \u00c7a\u011fan Parlapan " +
-                "— service layer integration is scheduled for Wednesday.");
-        setStatus("Run pipeline not yet available.");
+        if (currentProject == null) return;
+
+        // Pre-flight validation
+        String subsDirStr = currentProject.getSubmissionsDirectoryPath();
+        if (subsDirStr == null || subsDirStr.isBlank()) {
+            showError("Run Failed", "Submissions directory is not configured.");
+            return;
+        }
+        if (!Files.isDirectory(Paths.get(subsDirStr))) {
+            showError("Run Failed", "Submissions directory does not exist: " + subsDirStr);
+            return;
+        }
+        if (currentProject.getActiveConfiguration() == null) {
+            showError("Run Failed", "No configuration selected for this project.");
+            return;
+        }
+        if (currentProject.getExpectedOutput() == null || currentProject.getExpectedOutput().isBlank()) {
+            setStatus("Warning: expected output is blank — proceeding.");
+        }
+
+        // Clear previous run state
+        resultsTable.getItems().clear();
+        currentProject.getResults().clear();
+        progressBar.setProgress(0);
+        progressLabel.setText("0 / 0 submissions");
+        lblTotal.setText("0");
+        lblPassed.setText("0");
+        lblFailed.setText("0");
+        lblPending.setText("0");
+        setStatus("Running...");
+        runButton.setDisable(true);
+
+        Task<List<RunResult>> task = new Task<>() {
+            @Override
+            protected List<RunResult> call() throws Exception {
+                ProjectRunner runner = new ProjectRunner(currentProject);
+                runner.addListener(new ProjectRunner.RunListener() {
+                    @Override
+                    public void onSubmissionStarted(String studentId) {
+                        Platform.runLater(() -> setStatus("Processing " + studentId + "..."));
+                    }
+
+                    @Override
+                    public void onSubmissionCompleted(RunResult result) {
+                        Platform.runLater(() -> {
+                            resultsTable.getItems().add(result);
+                            refreshRunSummary();
+                        });
+                    }
+
+                    @Override
+                    public void onProgress(int completed, int total) {
+                        Platform.runLater(() -> {
+                            progressBar.setProgress((double) completed / total);
+                            progressLabel.setText(completed + " / " + total + " submissions");
+                        });
+                    }
+
+                    @Override
+                    public void onAllCompleted() {
+                        Platform.runLater(() -> {
+                            runButton.setDisable(false);
+                            List<RunResult> results = currentProject.getResults();
+                            long passed = results.stream()
+                                    .filter(r -> r.getStatus() == RunResult.Status.PASS).count();
+                            long failed = results.stream()
+                                    .filter(r -> r.getStatus() == RunResult.Status.FAIL).count();
+                            long errors = results.stream()
+                                    .filter(r -> r.getStatus() != RunResult.Status.PASS
+                                              && r.getStatus() != RunResult.Status.FAIL).count();
+                            setStatus("Run complete: " + passed + " passed, " + failed + " failed, "
+                                    + errors + " error out of " + results.size() + " submissions");
+                        });
+                    }
+                });
+                return runner.runAll();
+            }
+        };
+
+        task.setOnFailed(e -> {
+            runButton.setDisable(false);
+            Throwable ex = task.getException();
+            showError("Run Failed", ex != null ? ex.getMessage() : "Unknown error");
+        });
+
+        Thread t = new Thread(task);
+        t.setDaemon(true);
+        t.start();
+    }
+
+    private void refreshRunSummary() {
+        if (currentProject == null) {
+            lblTotal.setText("0");
+            lblPassed.setText("0");
+            lblFailed.setText("0");
+            lblPending.setText("0");
+            return;
+        }
+        List<RunResult> results = currentProject.getResults();
+        int total = results != null ? results.size() : 0;
+        long passed = results != null
+                ? results.stream().filter(r -> r.getStatus() == RunResult.Status.PASS).count()
+                : 0;
+        lblTotal.setText(String.valueOf(total));
+        lblPassed.setText(String.valueOf(passed));
+        lblFailed.setText(String.valueOf(total - passed));
+        lblPending.setText("0");
     }
 
     private void refreshUiState() {
