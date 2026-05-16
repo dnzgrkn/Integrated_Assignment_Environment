@@ -97,34 +97,44 @@ public class CommandRunner {
         return runProcess(cmd, sourceDir, compileTimeoutSeconds);
     }
 
-    public CommandResult execute(Configuration config, Path workingDir, String argumentsLine, int runTimeoutSeconds) {
-        List<String> cmd = new ArrayList<>();
-        String runCommand = config.getRunCommand();
-        if (runCommand == null || runCommand.isBlank()) {
-            return new CommandResult(-1, "", "No run command configured", false);
-        }
-        for (String token : runCommand.trim().split("\\s+")) {
-            cmd.add(adaptForOs(token));
-        }
-        if (argumentsLine != null && !argumentsLine.isBlank()) {
-            for (String token : argumentsLine.trim().split("\\s+")) {
-                cmd.add(token);
-            }
-        }
-        return runProcess(cmd, workingDir, runTimeoutSeconds);
+   public CommandResult execute(Configuration config, Path workingDir, String argumentsLine, int runTimeoutSeconds) {
+    List<String> cmd = new ArrayList<>();
+    String runCommand = config.getRunCommand();
+    if (runCommand == null || runCommand.isBlank()) {
+        return new CommandResult(-1, "", "No run command configured", false);
     }
+    // On Windows, wrap the command via cmd /c so the shell resolves
+    // executables relative to the working directory (Java's ProcessBuilder
+    // only searches PATH on Windows).
+    if (WINDOWS) {
+        cmd.add("cmd");
+        cmd.add("/c");
+    }
+    for (String token : runCommand.trim().split("\\s+")) {
+        cmd.add(adaptForOs(token));
+    }
+    if (argumentsLine != null && !argumentsLine.isBlank()) {
+        for (String token : argumentsLine.trim().split("\\s+")) {
+            cmd.add(token);
+        }
+    }
+    return runProcess(cmd, workingDir, runTimeoutSeconds);
+}
 
     // On Windows, "./main" should resolve to "main.exe" in the working dir.
-    private static String adaptForOs(String token) {
-        if (!WINDOWS) {
-            return token;
-        }
-        if (token.startsWith("./")) {
-            String name = token.substring(2);
-            return name.contains(".") ? name : name + ".exe";
-        }
+   private static String adaptForOs(String token) {
+    if (!WINDOWS) {
         return token;
     }
+    if (token.startsWith("./")) {
+        String name = token.substring(2);
+        if (!name.toLowerCase().endsWith(".exe")) {
+            name = name + ".exe";
+        }
+        return name;
+    }
+    return token;
+}
 
     private static String readStream(InputStream in) {
         StringBuilder sb = new StringBuilder();
