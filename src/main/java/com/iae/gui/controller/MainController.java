@@ -31,6 +31,7 @@ import javafx.stage.Stage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
@@ -514,11 +515,33 @@ public class MainController {
     private void onRunClicked() {
         if (currentProject == null) return;
 
+        // Pre-flight validation
+        String subsDirStr = currentProject.getSubmissionsDirectoryPath();
+        if (subsDirStr == null || subsDirStr.isBlank()) {
+            showError("Run Failed", "Submissions directory is not configured.");
+            return;
+        }
+        if (!Files.isDirectory(Paths.get(subsDirStr))) {
+            showError("Run Failed", "Submissions directory does not exist: " + subsDirStr);
+            return;
+        }
+        if (currentProject.getActiveConfiguration() == null) {
+            showError("Run Failed", "No configuration selected for this project.");
+            return;
+        }
+        if (currentProject.getExpectedOutput() == null || currentProject.getExpectedOutput().isBlank()) {
+            setStatus("Warning: expected output is blank — proceeding.");
+        }
+
         // Clear previous run state
         resultsTable.getItems().clear();
         currentProject.getResults().clear();
         progressBar.setProgress(0);
         progressLabel.setText("0 / 0 submissions");
+        lblTotal.setText("0");
+        lblPassed.setText("0");
+        lblFailed.setText("0");
+        lblPending.setText("0");
         setStatus("Running...");
         runButton.setDisable(true);
 
@@ -534,7 +557,10 @@ public class MainController {
 
                     @Override
                     public void onSubmissionCompleted(RunResult result) {
-                        Platform.runLater(() -> resultsTable.getItems().add(result));
+                        Platform.runLater(() -> {
+                            resultsTable.getItems().add(result);
+                            refreshRunSummary();
+                        });
                     }
 
                     @Override
@@ -549,7 +575,16 @@ public class MainController {
                     public void onAllCompleted() {
                         Platform.runLater(() -> {
                             runButton.setDisable(false);
-                            setStatus("Run complete.");
+                            List<RunResult> results = currentProject.getResults();
+                            long passed = results.stream()
+                                    .filter(r -> r.getStatus() == RunResult.Status.PASS).count();
+                            long failed = results.stream()
+                                    .filter(r -> r.getStatus() == RunResult.Status.FAIL).count();
+                            long errors = results.stream()
+                                    .filter(r -> r.getStatus() != RunResult.Status.PASS
+                                              && r.getStatus() != RunResult.Status.FAIL).count();
+                            setStatus("Run complete: " + passed + " passed, " + failed + " failed, "
+                                    + errors + " error out of " + results.size() + " submissions");
                         });
                     }
                 });
@@ -566,6 +601,25 @@ public class MainController {
         Thread t = new Thread(task);
         t.setDaemon(true);
         t.start();
+    }
+
+    private void refreshRunSummary() {
+        if (currentProject == null) {
+            lblTotal.setText("0");
+            lblPassed.setText("0");
+            lblFailed.setText("0");
+            lblPending.setText("0");
+            return;
+        }
+        List<RunResult> results = currentProject.getResults();
+        int total = results != null ? results.size() : 0;
+        long passed = results != null
+                ? results.stream().filter(r -> r.getStatus() == RunResult.Status.PASS).count()
+                : 0;
+        lblTotal.setText(String.valueOf(total));
+        lblPassed.setText(String.valueOf(passed));
+        lblFailed.setText(String.valueOf(total - passed));
+        lblPending.setText("0");
     }
 
     private void refreshUiState() {
