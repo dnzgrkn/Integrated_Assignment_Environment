@@ -38,6 +38,15 @@ The codebase follows a four-layer architecture with strict downward dependencies
 - **Domain** (`model/`) — core entities (Assignment, Submission, TestCase, etc.)
 - **Persistence** (`persistence/`) — JSON-backed storage via Jackson
 
+## Running an evaluation
+
+1. Edit → Manage Configurations → create a configuration (e.g., for C)
+2. File → New Project → fill in name, choose the configuration, browse to a submissions directory containing student ZIP files, fill in command-line arguments and expected output, Save
+3. File → Save Project As → choose where to store project_data.json
+4. Toolbar → Run
+5. Results stream into the table as each submission is evaluated; final summary shown in the status bar.
+6. File → Save Project at any time to persist results.
+
 ## Status
 
-Skeleton — milestone 2 (implementation) in progress.
+Milestone 2 complete — service integration implemented.
