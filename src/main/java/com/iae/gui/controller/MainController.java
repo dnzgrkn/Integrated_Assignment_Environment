@@ -16,8 +16,10 @@ import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.Tooltip;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.web.WebView;
 import javafx.stage.DirectoryChooser;
@@ -91,9 +93,48 @@ public class MainController {
 
     private void initResultsTable() {
         colStudentId.setCellValueFactory(new PropertyValueFactory<>("studentId"));
+
         colStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
+        colStatus.setCellFactory(col -> new TableCell<>() {
+            @Override
+            protected void updateItem(RunResult.Status item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setStyle("");
+                } else {
+                    setText(item.toString());
+                    switch (item) {
+                        case PASS -> setStyle("-fx-background-color: #c8e6c9;");
+                        case FAIL -> setStyle("-fx-background-color: #ffe0b2;");
+                        default   -> setStyle("-fx-background-color: #ffcdd2;");
+                    }
+                }
+            }
+        });
+
         colCapturedOutput.setCellValueFactory(new PropertyValueFactory<>("capturedOutput"));
+        colCapturedOutput.setCellFactory(col -> truncatingCell());
+
         colErrorMessage.setCellValueFactory(new PropertyValueFactory<>("errorMessage"));
+        colErrorMessage.setCellFactory(col -> truncatingCell());
+    }
+
+    private static TableCell<RunResult, String> truncatingCell() {
+        return new TableCell<>() {
+            @Override
+            protected void updateItem(String item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty || item == null) {
+                    setText(null);
+                    setTooltip(null);
+                } else {
+                    String display = item.length() > 80 ? item.substring(0, 80) + "..." : item;
+                    setText(display);
+                    setTooltip(new Tooltip(item));
+                }
+            }
+        };
     }
 
     @FXML
