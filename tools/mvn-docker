@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Run any Maven goal in a Java 21 + Maven 3.9 container.
+# Use this if your host doesn't have JDK 21 installed.
+# Usage: ./tools/mvn-docker test          (or any other mvn args)
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+M2_CACHE="${HOME}/.m2"
+mkdir -p "${M2_CACHE}"
+
+exec docker run --rm \
+  -v "${REPO_ROOT}":/workspace \
+  -v "${M2_CACHE}":/root/.m2 \
+  -w /workspace \
+  maven:3.9-eclipse-temurin-21 \
+  mvn "$@"
