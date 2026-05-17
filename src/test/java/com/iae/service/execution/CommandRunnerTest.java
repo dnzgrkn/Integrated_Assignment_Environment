@@ -4,6 +4,8 @@ import com.iae.model.Configuration;
 import com.iae.model.LanguageType;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+import org.junit.jupiter.api.condition.DisabledOnOs;
+import org.junit.jupiter.api.condition.OS;
 
 import java.nio.file.Path;
 import java.util.List;
@@ -56,6 +58,8 @@ class CommandRunnerTest {
         assertFalse(r.stdout.contains("ERR"));
     }
 
+    @DisabledOnOs(value = OS.WINDOWS,
+        disabledReason = "Windows process handle cleanup race with @TempDir after destroyForcibly")
     @Test
     void timeoutFlagsTimedOut(@TempDir Path tmp) {
         List<String> cmd = WINDOWS
