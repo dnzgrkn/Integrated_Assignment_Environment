@@ -101,14 +101,9 @@
                             <finalName>iae-${project.version}</finalName>
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>com.iae.Main</mainClass>
+                                    <mainClass>com.iae.Launcher</mainClass>
                                 </transformer>
                             </transformers>
-                            <artifactSet>
-                                <excludes>
-                                    <exclude>org.openjfx:*</exclude>
-                                </excludes>
-                            </artifactSet>
                         </configuration>
                     </execution>
                 </executions>
@@ -116,3 +111,4 @@
         </plugins>
     </build>
 </project>
+
