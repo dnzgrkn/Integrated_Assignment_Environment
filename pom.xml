@@ -19,6 +19,8 @@
         <javafx.version>21.0.2</javafx.version>
         <jackson.version>2.16.1</jackson.version>
         <junit.version>5.10.2</junit.version>
+        <slf4j.version>2.0.13</slf4j.version>
+        <logback.version>1.5.6</logback.version>
     </properties>
 
     <dependencies>
@@ -44,6 +46,17 @@
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
             <version>${jackson.version}</version>
+        </dependency>
+        <!-- Logging: SLF4J facade + Logback backend (writes to %APPDATA%\IAE\logs\iae.log) -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
         </dependency>
 
         <!-- Testing -->

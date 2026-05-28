@@ -6,6 +6,8 @@ import com.iae.model.RunResult;
 import com.iae.persistence.ConfigurationRepository;
 import com.iae.persistence.ProjectRepository;
 import com.iae.service.ProjectRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
@@ -37,7 +39,7 @@ import java.nio.file.Paths;
 import java.util.List;
 
 public class MainController {
-
+ private static final Logger log = LoggerFactory.getLogger(MainController.class);
     // Menu items
     @FXML private MenuItem menuNewProject;
     @FXML private MenuItem menuOpenProject;
@@ -544,6 +546,7 @@ public class MainController {
         lblPending.setText("0");
         setStatus("Running...");
         runButton.setDisable(true);
+        log.info("Run triggered for project '{}'", currentProject.getProjectName());
 
         Task<List<RunResult>> task = new Task<>() {
             @Override
@@ -595,6 +598,8 @@ public class MainController {
         task.setOnFailed(e -> {
             runButton.setDisable(false);
             Throwable ex = task.getException();
+             log.error("Run task failed for project '{}'",
+                    currentProject != null ? currentProject.getProjectName() : "?", ex);
             showError("Run Failed", ex != null ? ex.getMessage() : "Unknown error");
         });
 
@@ -681,6 +686,7 @@ public class MainController {
     }
 
     private void showError(String title, String content) {
+        log.warn("UI error dialog shown: {} — {}", title, content);
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle(title);
         alert.setHeaderText(null);
