@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IAE - User Manual</title>
+    <style>
+        :root {
+            --brand-primary: #4338ca;
+            --brand-secondary: #3730a3;
+            --bg-color: #f1f5f9;
+            --text-dark: #1e293b;
+            --text-muted: #475569;
+            --card-bg: #ffffff;
+            --border-light: #e2e8f0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-dark);
+            margin: 0;
+            padding: 0;
+            line-height: 1.8;
+            font-size: 15px;
+        }
+
+        /* --- Header Styling --- */
+        .hero {
+            background: linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-secondary) 100%);
+            padding: 50px 20px 70px 20px;
+            text-align: center;
+            color: #ffffff;
+            border-bottom-left-radius: 30px;
+            border-bottom-right-radius: 30px;
+            box-shadow: 0 4px 15px rgba(67, 56, 202, 0.2);
+        }
+
+        .hero h1 {
+            margin: 0;
+            font-size: 2.5em;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .hero p {
+            margin: 10px 0 0 0;
+            font-size: 1.1em;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        /* --- Layout --- */
+        .container {
+            max-width: 800px;
+            margin: -40px auto 50px auto;
+            padding: 0 20px;
+        }
+
+        .content-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 35px 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Top decorative line for cards */
+        .content-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: var(--brand-primary);
+            opacity: 0.8;
+        }
+
+        /* --- Typography --- */
+        h2 {
+            color: var(--brand-primary);
+            font-size: 1.6em;
+            margin-top: 0;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Number circles before headings */
+        h2::before {
+            content: attr(data-step);
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            width: 32px;
+            height: 32px;
+            background-color: #e0e7ff;
+            color: var(--brand-primary);
+            border-radius: 50%;
+            font-size: 0.6em;
+            font-weight: bold;
+        }
+
+        p {
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            text-align: justify;
+        }
+
+        strong {
+            color: var(--text-dark);
+            font-weight: 600;
+        }
+
+        /* --- Image Placeholders --- */
+        .image-container {
+            background-color: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 40px 20px;
+            text-align: center;
+            color: #94a3b8;
+            font-weight: 500;
+            margin: 25px 0;
+            transition: all 0.3s ease;
+        }
+
+        .image-container:hover {
+            border-color: var(--brand-primary);
+            background-color: #f1f5f9;
+        }
+
+        /* --- Custom UI Elements --- */
+        .badge {
+            background-color: #f1f5f9;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-family: monospace;
+            font-size: 0.9em;
+            color: #0f172a;
+            border: 1px solid var(--border-light);
+        }
+
+        /* Warning/Tip Box for Troubleshooting */
+        .alert-box {
+            background-color: #fffbeb;
+            border-left: 4px solid #f59e0b;
+            padding: 15px 20px;
+            border-radius: 0 8px 8px 0;
+            margin: 20px 0;
+        }
+
+        .alert-box strong {
+            color: #b45309;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .alert-box p {
+            margin: 0;
+            color: #92400e;
+        }
+
+        /* --- Results Status Grid --- */
+        .verdict-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .verdict-card {
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid;
+            font-size: 0.9em;
+        }
+
+        .verdict-card strong {
+            display: block;
+            font-size: 1.1em;
+            margin-bottom: 5px;
+        }
+
+        .v-pass { background: #f0fdf4; border-color: #86efac; }
+        .v-pass strong { color: #166534; }
+        .v-pass p { color: #14532d; margin: 0; text-align: left; }
+
+        .v-fail { background: #fff7ed; border-color: #fdba74; }
+        .v-fail strong { color: #9a3412; }
+        .v-fail p { color: #7c2d12; margin: 0; text-align: left; }
+
+        .v-error { background: #fef2f2; border-color: #fca5a5; }
+        .v-error strong { color: #991b1b; }
+        .v-error p { color: #7f1d1d; margin: 0; text-align: left; }
+
+        .v-timeout { background: #faf5ff; border-color: #d8b4fe; }
+        .v-timeout strong { color: #6b21a8; }
+        .v-timeout p { color: #581c87; margin: 0; text-align: left; }
+
+        /* --- Footer --- */
+        .footer-credits {
+            text-align: center;
+            font-size: 0.85em;
+            color: #94a3b8;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid var(--border-light);
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="hero">
+    <h1>Integrated Assignment Environment</h1>
+    <h1>User Manual</h1>
+</div>
+
+<div class="container">
+
+    <!-- 1. Introduction -->
+    <div class="content-card">
+        <h2 data-step="1">Introduction</h2>
+        <p>Welcome to the <strong>Integrated Assignment Environment (IAE)</strong>. Developed specifically for the CE 316 Software Engineering course, IAE is a serverless, highly resilient desktop application designed to fully automate the process of evaluating programming assignments.</p>
+        <p>The Integrated Assignment Environment works in four steps: it gets the work from the students it checks the work to make sure it is correct it runs the work to see what it does and then it compares the work to the right answers. The Integrated Assignment Environment is very flexible so students can use it with <strong>different programming languages</strong> like C and Java and also Python. The computer that the Integrated Assignment Environment is on needs to have the right tools to work with those languages.</p>
+        <p>When students use the Integrated Assignment Environment their work is kept <strong>separate</strong>. So if one student has a problem, with their work like it is not working right or it is doing something the IAE will stop that problem and keep it from affecting anyone else. This means that even if something goes wrong the IAE will <strong>keep working and will not crash</strong>. It will finish all the work it needs to do.</p>
+
+        <div class="image-container">
+            [📸 Insert Screenshot Here: Application Main Window Overview]
+        </div>
+    </div>
+
+    <!-- 2. Getting Started -->
+    <div class="content-card">
+        <h2 data-step="2">Getting Started</h2>
+        <p>Upon launching the IAE application, you are presented with a modern, dual-pane workspace designed for efficiency. The top <strong>Menu Bar</strong> and <strong>Toolbar</strong> provide access to project management and execution controls. The left panel serves as your <strong>Project Dashboard</strong>, summarizing the active configuration, target directories, command-line arguments, and a real-time statistical run summary.</p>
+        <p>The right panel is entirely dedicated to the <strong>Results Table</strong>, which populates dynamically as the evaluation engine runs. To utilize the software effectively, follow this logical sequence: <strong>First</strong>, define how a language operates via a Configuration. <strong>Second</strong>, bind that setup to a grading session by creating a Project. <strong>Finally</strong>, press the Run button to evaluate the student archives. Continuous system feedback is provided via the bottom status bar.</p>
+    </div>
+
+    <!-- 3. Managing Configurations -->
+    <div class="content-card">
+        <h2 data-step="3">Managing Configurations</h2>
+        <p>A Configuration is the core of the IAE evaluation engine; it dictates exactly how the software should handle a specific programming language. Navigate to <strong>Edit &gt; Manage Configurations</strong> to open the dedicated editor.</p>
+        <p>Here, you define the compiler executable path (<span class="badge">gcc</span>), essential compiler flags (<span class="badge">-Wall -o main</span>), the execution command (<span class="badge">./main</span>), and the exact expected source file name (<span class="badge">main.c</span>) that the software must extract from the student ZIPs. For interpreted languages like Python, simply uncheck the "Compiled Language" toggle to bypass the build stage.</p>
+        <p>Because configurations are safely serialized as JSON files, they are highly portable. Use the <strong>Export Configuration</strong> button to share your rule-sets with colleagues, or use <strong>Import Configuration</strong> to load predefined templates and begin grading instantly.</p>
+
+        <div class="image-container">
+            [📸 Insert Screenshot Here: Configuration Editor Dialog]
+        </div>
+    </div>
+
+    <!-- 4. Creating Projects -->
+    <div class="content-card">
+        <h2 data-step="4">Creating Projects</h2>
+        <p>A Project binds your language Configuration together with a specific batch of student submissions. Navigate to <strong>File &gt; New Project</strong> to begin. Assign your project a name and select your Configuration from the dropdown menu.</p>
+        <p>Next, utilize the directory browser to locate your <strong>Submissions Directory</strong>—this folder must contain the raw student ZIP files. If the assignment requires external parameters to function, enter them into the Command-Line Arguments field. Lastly, carefully paste the exact expected console output into the text area; the system's text analysis engine will use this as the absolute truth for grading. Once saved, the project is stored locally as a <span class="badge">project_data.json</span> file, allowing you to close the application and seamlessly resume your session later via <strong>File &gt; Open Project</strong>.</p>
+
+        <div class="image-container">
+            [📸 Insert Screenshot Here: Project Editor Dialog]
+        </div>
+    </div>
+
+    <!-- 5. Running an Evaluation -->
+    <div class="content-card">
+        <h2 data-step="5">Running an Evaluation</h2>
+        <p>With a project loaded and your submissions directory verified, the <strong>Run</strong> button on the top toolbar will illuminate. Clicking it dispatches the complex evaluation pipeline to a background worker thread, ensuring the User Interface never freezes during heavy workloads.</p>
+        <p>The engine iteratively unpacks each ZIP file using native Java utilities, searches for the declared source file, compiles the code (if necessary), and executes the resulting binary. To prevent malicious or poorly written code from halting the system, the execution engine strictly enforces a <strong>10-second timeout policy</strong>. As the programs terminate, their standard output is aggressively trimmed of trailing whitespace and compared line-by-line against your expected text. You can monitor the overall completion via the progress bar.</p>
+    </div>
+
+    <!-- 6. Understanding Results -->
+    <div class="content-card">
+        <h2 data-step="6">Understanding Results</h2>
+        <p>The Results Table is engineered for rapid diagnostic scanning. Every submission receives a strict color-coded verdict based on the engine's findings. You can click on any row to view the untruncated console logs and exact error traces in the detail pane below.</p>
+
+        <div class="verdict-grid">
+            <div class="verdict-card v-pass">
+                <strong>PASS</strong>
+                <p>Code compiled, executed on time, and the output matched perfectly.</p>
+            </div>
+            <div class="verdict-card v-fail">
+                <strong>FAIL</strong>
+                <p>Code ran successfully, but the output text diverged from expectations.</p>
+            </div>
+            <div class="verdict-card v-error">
+                <strong>COMPILE_ERROR</strong>
+                <p>ZIP corrupted, source file missing, or compiler syntax failure.</p>
+            </div>
+            <div class="verdict-card v-error">
+                <strong>RUNTIME_ERROR</strong>
+                <p>Program crashed during execution (e.g., NullPointer, memory leak).</p>
+            </div>
+            <div class="verdict-card v-timeout">
+                <strong>TIMEOUT</strong>
+                <p>Program trapped in an infinite loop and was forcefully terminated.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. Troubleshooting -->
+    <div class="content-card">
+        <h2 data-step="7">Troubleshooting</h2>
+        <p>If you encounter unexpected results during a batch evaluation, consider these common pitfalls and their immediate solutions:</p>
+
+        <div class="alert-box">
+            <strong>Mass COMPILE_ERROR Verdicts</strong>
+            <p>This typically implies the required compiler (like GCC or Java) is either not installed on the host machine or not registered in the system's PATH variables. Verify your terminal by typing <span class="badge">gcc --version</span>.</p>
+        </div>
+
+        <div class="alert-box">
+            <strong>Mass FAIL Verdicts on Working Code</strong>
+            <p>This is frequently caused by invisible character mismatches. Ensure your Expected Output text does not contain conflicting line endings (CRLF vs LF) or hidden trailing whitespaces that the student's code does not print.</p>
+        </div>
+
+        <div class="alert-box">
+            <strong>Missing File Errors</strong>
+            <p>If the engine reports that the source file is missing, the student may have named their file incorrectly (e.g., <code>Main.c</code> instead of <code>main.c</code>) inside the archive. The engine mandates exact naming conformity.</p>
+        </div>
+
+        <div class="image-container">
+            [📸 Insert Screenshot Here: Results Table showing Detail Pane]
+        </div>
+    </div>
+
+    <!-- 8. About -->
+    <div class="content-card">
+        <h2 data-step="8">About</h2>
+        <p>The <strong>Integrated Assignment Environment (IAE) Version 1.0.0</strong> was architected and engineered by Team 8 for the CE 316 Software Engineering course at İzmir University of Economics (Spring 2026).</p>
+        <p>Built upon Java 21, JavaFX, and Jackson JSON persistence, the software demonstrates robust MVC architecture, defensive system programming, and zero server dependencies.</p>
+
+        <div class="footer-credits">
+            <strong>Development Team:</strong><br>
+            Deniz Gürkan (Lead/GUI) • Fatih Çelik (Model/Persistence) • Çağan Parlapan (Execution Engine)<br>
+            Can Esen (Dialogs/Rendering) • Emre Taşkın (Test Architect/Documentation)
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>
