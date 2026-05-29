@@ -1,7 +1,8 @@
 package com.iae.service.execution;
 
 import com.iae.model.Configuration;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 public class CommandRunner {
-
+ private static final Logger log = LoggerFactory.getLogger(CommandRunner.class);
     private static final boolean WINDOWS =
             System.getProperty("os.name", "").toLowerCase().contains("win");
 
@@ -49,8 +50,10 @@ public class CommandRunner {
 
         Process process;
         try {
+            log.debug("Starting process {} (timeout {}s, cwd {})", command, timeoutSeconds, workingDir);
             process = pb.start();
         } catch (IOException e) {
+            log.warn("Failed to start process {}: {}", command, e.getMessage());
             return new CommandResult(-1, "", "Failed to start process: " + e.getMessage(), false);
         }
 
@@ -61,6 +64,7 @@ public class CommandRunner {
         try {
             boolean finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS);
             if (!finished) {
+                log.warn("Process {} exceeded {}s timeout — destroying forcibly", command, timeoutSeconds);
                 process.destroyForcibly();
                 process.waitFor(5, TimeUnit.SECONDS);
                 pool.shutdownNow();
@@ -69,12 +73,15 @@ public class CommandRunner {
             int exit = process.exitValue();
             String out = stdoutF.get(2, TimeUnit.SECONDS);
             String err = stderrF.get(2, TimeUnit.SECONDS);
+            log.debug("Process {} exited with code {}", command, exit);
             return new CommandResult(exit, out, err, false);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+            log.warn("Process {} interrupted: {}", command, e.getMessage());
             process.destroyForcibly();
             return new CommandResult(-1, "", "Interrupted: " + e.getMessage(), false);
         } catch (ExecutionException | TimeoutException e) {
+            log.warn("Stream read failed for process {}: {}", command, e.getMessage());
             return new CommandResult(-1, "", "Stream read failed: " + e.getMessage(), false);
         } finally {
             pool.shutdownNow();

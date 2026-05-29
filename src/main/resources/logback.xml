@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  IAE logging configuration.
+
+  Log files are written to the per-user application data directory so they
+  survive application upgrades and live alongside the configurations/ and
+  projects/ folders described in Section 11.5 of the design document:
+
+      Windows : %APPDATA%\IAE\logs\iae.log
+      Other   : ${user.home}/IAE/logs/iae.log   (fallback when APPDATA is unset)
+
+  On Windows the APPDATA environment variable is always defined; the
+  "user.home/IAE" fallback only applies when running on a developer's
+  Linux/macOS machine (e.g. during local testing).
+-->
+<configuration>
+
+    <!-- Resolve the log directory: APPDATA on Windows, user.home elsewhere. -->
+    <property name="LOG_BASE" value="${APPDATA:-${user.home}}" />
+    <property name="LOG_DIR" value="${LOG_BASE}/IAE/logs" />
+
+    <!-- Console: concise, for developers running mvn javafx:run -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- File: full detail, rolled daily and capped in size -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/iae.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/iae.%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <maxFileSize>5MB</maxFileSize>
+            <maxHistory>14</maxHistory>
+            <totalSizeCap>50MB</totalSizeCap>
+        </rollingPolicy>
+        <encoder>
+            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{40} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <!-- Keep noisy third-party libraries at WARN -->
+    <logger name="javafx" level="WARN" />
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="FILE" />
+    </root>
+
+</configuration>

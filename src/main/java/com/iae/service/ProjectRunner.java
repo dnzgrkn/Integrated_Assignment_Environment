@@ -9,7 +9,8 @@ import com.iae.service.execution.CommandRunner;
 import com.iae.service.execution.CommandRunner.CommandResult;
 import com.iae.service.extract.ExtractionException;
 import com.iae.service.extract.ZipExtractor;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -21,7 +22,7 @@ import java.util.Optional;
 import java.util.stream.Stream;
 
 public class ProjectRunner {
-
+ private static final Logger log = LoggerFactory.getLogger(ProjectRunner.class);
     public interface RunListener {
         void onSubmissionStarted(String studentId);
         void onSubmissionCompleted(RunResult result);
@@ -65,31 +66,40 @@ public class ProjectRunner {
         listeners.remove(listener);
     }
 
-    public List<RunResult> runAll() throws IOException {
+   public List<RunResult> runAll() throws IOException {
         project.clearResults();
         List<RunResult> results = new ArrayList<>();
         List<Path> zips = listZips();
         int total = zips.size();
+        log.info("Run started for project '{}' — {} submission(s) in {}",
+                project.getProjectName(), total, project.getSubmissionsDirectoryPath());
 
         for (int i = 0; i < total; i++) {
             Path zip = zips.get(i);
             String studentId = stripZipExtension(zip.getFileName().toString());
+            log.debug("Processing submission {}/{}: {}", i + 1, total, studentId);
             notifyStarted(studentId);
 
             RunResult result;
             try {
                 result = processSingleSubmission(studentId, zip);
             } catch (Throwable t) {
+                // Per-submission isolation: one student's failure must not abort the batch.
+                log.error("Unexpected error processing submission '{}'; recording RUNTIME_ERROR and continuing",
+                        studentId, t);
                 result = RunResult.runtimeError(studentId, null,
                         "Unexpected error: " + t.getClass().getSimpleName() + ": " + t.getMessage());
             }
 
+            log.info("Submission '{}' -> {}", studentId, result.getStatus());
             results.add(result);
             project.addResult(result);
             notifyCompleted(result);
             notifyProgress(i + 1, total);
         }
 
+        log.info("Run finished for project '{}' — {} result(s)",
+                project.getProjectName(), results.size());
         notifyAllCompleted();
         return results;
     }
