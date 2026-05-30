@@ -35,6 +35,7 @@ public class ConfigEditorController {
     // Validation / buttons
     @FXML private Label      validationLabel;
     @FXML private Button     cancelButton;
+    @FXML private Button     exportButton;
     @SuppressWarnings("unused")
     @FXML private Button     saveButton;
 
@@ -55,13 +56,11 @@ public class ConfigEditorController {
 
     @FXML
     private void initialize() {
-        // Populate the language type combo from the LanguageType enum
         languageTypeCombo.getItems().setAll(LanguageType.values());
 
-        // The compiler pane is only editable when "Compiled Language" is checked
+        // The compiler pane is editable only when "Compiled Language" is checked.
         compilerPane.disableProperty().bind(compiledCheckBox.selectedProperty().not());
 
-        // Clear stale validation messages on every field edit
         nameField.textProperty().addListener((_o, _old, _n) -> clearValidation());
         compilerPathField.textProperty().addListener((_o, _old, _n) -> clearValidation());
         runCommandField.textProperty().addListener((_o, _old, _n) -> clearValidation());
@@ -74,15 +73,10 @@ public class ConfigEditorController {
     }
 
 
-    /**
-     * Injects the ConfigurationRepository used to persist the result.
-     * Must be called before the dialog is shown.
-     */
     public void setRepository(ConfigurationRepository repository) {
         this.repository = repository;
     }
 
-    /** Switches the dialog into create mode (blank form). */
     public void initCreate() {
         editTarget = null;
         dialogTitleLabel.setText("New Configuration");
@@ -97,6 +91,8 @@ public class ConfigEditorController {
 
         idField.setText(config.getId());
         nameField.setText(config.getName());
+        // Setting the language fires the preset listener; setting the other fields
+        // afterwards lets the persisted values win over preset defaults.
         languageTypeCombo.setValue(config.getLanguageType());
         compiledCheckBox.setSelected(config.isCompiled());
         compilerPathField.setText(nvl(config.getCompilerPath()));
@@ -109,21 +105,15 @@ public class ConfigEditorController {
     }
 
 
-    /** Returns true when the user clicked Save and validation passed. */
     public boolean isSaved() {
         return saved;
     }
 
-    /**
-     * Returns the newly-created or updated Configuration
-     * or null if the dialog was cancelled.
-     */
     public Configuration getResult() {
         return result;
     }
 
 
-    /** Opens a file chooser to select the compiler executable. */
     @FXML
     private void onBrowseCompiler() {
         FileChooser fc = new FileChooser();
@@ -134,58 +124,108 @@ public class ConfigEditorController {
         }
     }
 
-    /** Validates the form, persists via the repository, then closes. */
     @FXML
     private void onSave() {
         if (!validate()) return;
 
-        boolean isCompiled = compiledCheckBox.isSelected();
-
-        if (editTarget == null) {
-            result = Configuration.newConfiguration(
-                    nameField.getText().strip(),
-                    languageTypeCombo.getValue(),
-                    isCompiled,
-                    isCompiled ? compilerPathField.getText().strip() : null,
-                    isCompiled ? nullIfBlank(compilerFlagsField.getText()) : null,
-                    runCommandField.getText().strip(),
-                    expectedSourceFileNameField.getText().strip()
-            );
-        } else {
-            editTarget.setName(nameField.getText().strip());
-            editTarget.setLanguageType(languageTypeCombo.getValue());
-            editTarget.setCompiled(isCompiled);
-            editTarget.setCompilerPath(isCompiled ? compilerPathField.getText().strip() : null);
-            editTarget.setCompilerFlags(isCompiled ? nullIfBlank(compilerFlagsField.getText()) : null);
-            editTarget.setRunCommand(runCommandField.getText().strip());
-            editTarget.setExpectedSourceFileName(expectedSourceFileNameField.getText().strip());
-            result = editTarget;
-        }
-
+        Configuration built = buildFromForm();
         if (repository != null) {
             try {
-                repository.save(result);
+                repository.save(built);
             } catch (IOException e) {
                 showValidation("Could not save configuration: " + e.getMessage());
                 return;
             }
         }
-
+        // Reflect saved values back onto the editTarget reference so callers
+        // still holding it see the update without reloading from disk.
+        if (editTarget != null) {
+            copyValues(built, editTarget);
+            result = editTarget;
+        } else {
+            result = built;
+        }
         saved = true;
         closeDialog();
     }
 
-    /** Discards changes and closes without saving. */
+    @FXML
+    private void onExport() {
+        if (!validate()) return;
+
+        Configuration built = buildFromForm();
+        FileChooser fc = new FileChooser();
+        fc.setTitle("Export Configuration");
+        fc.setInitialFileName(built.getName() + ".json");
+        fc.getExtensionFilters().add(
+                new FileChooser.ExtensionFilter("JSON files (*.json)", "*.json"));
+        File dest = fc.showSaveDialog(exportButton.getScene().getWindow());
+        if (dest == null) return;
+
+        try {
+            ConfigurationRepository repo = repository != null
+                    ? repository
+                    : new ConfigurationRepository(dest.toPath().getParent());
+            repo.exportToFile(built, dest.toPath());
+        } catch (IOException e) {
+            showValidation("Could not export: " + e.getMessage());
+        }
+    }
+
     @FXML
     private void onCancel() {
         saved = false;
         closeDialog();
     }
 
-    /**
-     * Validates all required fields. Returns true if the form is valid;
-     * sets the validation label and returns false otherwise.
-     */
+    private Configuration buildFromForm() {
+        boolean isCompiled = compiledCheckBox.isSelected();
+        String name        = nameField.getText().strip();
+        LanguageType lt    = languageTypeCombo.getValue();
+        String compPath    = isCompiled ? compilerPathField.getText().strip() : null;
+        String compFlags   = isCompiled ? nullIfBlank(compilerFlagsField.getText()) : null;
+        String runCmd      = runCommandField.getText().strip();
+        String srcName     = expectedSourceFileNameField.getText().strip();
+
+        if (editTarget == null) {
+            return Configuration.newConfiguration(name, lt, isCompiled, compPath, compFlags, runCmd, srcName);
+        }
+        return new Configuration(editTarget.getId(), name, lt, isCompiled, compPath, compFlags, runCmd, srcName);
+    }
+
+    private static void copyValues(Configuration from, Configuration to) {
+        to.setName(from.getName());
+        to.setLanguageType(from.getLanguageType());
+        to.setCompiled(from.isCompiled());
+        to.setCompilerPath(from.getCompilerPath());
+        to.setCompilerFlags(from.getCompilerFlags());
+        to.setRunCommand(from.getRunCommand());
+        to.setExpectedSourceFileName(from.getExpectedSourceFileName());
+    }
+
+    private void applyLanguagePreset(LanguageType lt) {
+        LanguagePreset next = LanguagePreset.forLanguage(lt);
+        if (next == null) {
+            // OTHER — stop tracking a preset so user edits aren't overwritten later.
+            lastAppliedPreset = null;
+            return;
+        }
+        LanguagePreset prev = lastAppliedPreset;
+        compiledCheckBox.setSelected(next.compiled());
+        overwriteIfBlankOrPreset(compilerPathField,           next.compilerPath(),    prev != null ? prev.compilerPath()    : null);
+        overwriteIfBlankOrPreset(compilerFlagsField,          next.compilerFlags(),   prev != null ? prev.compilerFlags()   : null);
+        overwriteIfBlankOrPreset(runCommandField,             next.runCommand(),      prev != null ? prev.runCommand()      : null);
+        overwriteIfBlankOrPreset(expectedSourceFileNameField, next.sourceFileName(),  prev != null ? prev.sourceFileName()  : null);
+        lastAppliedPreset = next;
+    }
+
+    private static void overwriteIfBlankOrPreset(TextField field, String newValue, String previousPresetValue) {
+        String current = field.getText();
+        if (current == null || current.isBlank() || Objects.equals(current, previousPresetValue)) {
+            field.setText(newValue);
+        }
+    }
+
     private boolean validate() {
         if (nameField.getText().isBlank()) {
             return showValidation("Configuration name is required.");
@@ -225,29 +265,6 @@ public class ConfigEditorController {
 
     private static String nvl(String s) {
         return s != null ? s : "";
-    }
-
-    private void applyLanguagePreset(LanguageType lt) {
-        LanguagePreset next = LanguagePreset.forLanguage(lt);
-        if (next == null) {
-            // OTHER — stop tracking a preset so user edits aren't overwritten later.
-            lastAppliedPreset = null;
-            return;
-        }
-        LanguagePreset prev = lastAppliedPreset;
-        compiledCheckBox.setSelected(next.compiled());
-        overwriteIfBlankOrPreset(compilerPathField,           next.compilerPath(),   prev != null ? prev.compilerPath()   : null);
-        overwriteIfBlankOrPreset(compilerFlagsField,          next.compilerFlags(),  prev != null ? prev.compilerFlags()  : null);
-        overwriteIfBlankOrPreset(runCommandField,             next.runCommand(),     prev != null ? prev.runCommand()     : null);
-        overwriteIfBlankOrPreset(expectedSourceFileNameField, next.sourceFileName(), prev != null ? prev.sourceFileName() : null);
-        lastAppliedPreset = next;
-    }
-
-    private static void overwriteIfBlankOrPreset(TextField field, String newValue, String previousPresetValue) {
-        String current = field.getText();
-        if (current == null || current.isBlank() || Objects.equals(current, previousPresetValue)) {
-            field.setText(newValue);
-        }
     }
 
     // Sensible defaults for the built-in languages. Picking C / Java / Python

@@ -136,7 +136,10 @@
 
     <Separator/>
 
-    <HBox style="-fx-padding: 12 16 12 16;">
+    <HBox style="-fx-padding: 12 16 12 16;" spacing="8">
+        <Button fx:id="exportButton" text="Export..." onAction="#onExport">
+            <tooltip><Tooltip text="Save this configuration to a JSON file you can share."/></tooltip>
+        </Button>
         <Region HBox.hgrow="ALWAYS"/>
         <ButtonBar>
             <buttons>
