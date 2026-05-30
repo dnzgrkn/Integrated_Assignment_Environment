@@ -10,6 +10,7 @@ import javafx.stage.Stage;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Objects;
 
 public class ConfigEditorController {
 
@@ -46,6 +47,11 @@ public class ConfigEditorController {
 
     private boolean saved = false;
 
+    // Tracks the preset whose values are currently sitting in the form, so a
+    // later language switch can tell "untouched preset default" apart from
+    // "value the user actually typed" and overwrite only the former.
+    private LanguagePreset lastAppliedPreset;
+
 
     @FXML
     private void initialize() {
@@ -60,7 +66,11 @@ public class ConfigEditorController {
         compilerPathField.textProperty().addListener((_o, _old, _n) -> clearValidation());
         runCommandField.textProperty().addListener((_o, _old, _n) -> clearValidation());
         expectedSourceFileNameField.textProperty().addListener((_o, _old, _n) -> clearValidation());
-        languageTypeCombo.valueProperty().addListener((_o, _old, _n) -> clearValidation());
+
+        languageTypeCombo.valueProperty().addListener((_o, _old, newLt) -> {
+            clearValidation();
+            applyLanguagePreset(newLt);
+        });
     }
 
 
@@ -93,6 +103,9 @@ public class ConfigEditorController {
         compilerFlagsField.setText(nvl(config.getCompilerFlags()));
         runCommandField.setText(nvl(config.getRunCommand()));
         expectedSourceFileNameField.setText(nvl(config.getExpectedSourceFileName()));
+        // Seed lastAppliedPreset with the persisted language so a later switch
+        // will overwrite any field that still equals this language's default.
+        lastAppliedPreset = LanguagePreset.forLanguage(config.getLanguageType());
     }
 
 
@@ -212,5 +225,47 @@ public class ConfigEditorController {
 
     private static String nvl(String s) {
         return s != null ? s : "";
+    }
+
+    private void applyLanguagePreset(LanguageType lt) {
+        LanguagePreset next = LanguagePreset.forLanguage(lt);
+        if (next == null) {
+            // OTHER — stop tracking a preset so user edits aren't overwritten later.
+            lastAppliedPreset = null;
+            return;
+        }
+        LanguagePreset prev = lastAppliedPreset;
+        compiledCheckBox.setSelected(next.compiled());
+        overwriteIfBlankOrPreset(compilerPathField,           next.compilerPath(),   prev != null ? prev.compilerPath()   : null);
+        overwriteIfBlankOrPreset(compilerFlagsField,          next.compilerFlags(),  prev != null ? prev.compilerFlags()  : null);
+        overwriteIfBlankOrPreset(runCommandField,             next.runCommand(),     prev != null ? prev.runCommand()     : null);
+        overwriteIfBlankOrPreset(expectedSourceFileNameField, next.sourceFileName(), prev != null ? prev.sourceFileName() : null);
+        lastAppliedPreset = next;
+    }
+
+    private static void overwriteIfBlankOrPreset(TextField field, String newValue, String previousPresetValue) {
+        String current = field.getText();
+        if (current == null || current.isBlank() || Objects.equals(current, previousPresetValue)) {
+            field.setText(newValue);
+        }
+    }
+
+    // Sensible defaults for the built-in languages. Picking C / Java / Python
+    // toggles the compiled flag and fills any still-blank fields; OTHER is a
+    // no-op so users can roll their own without being overwritten.
+    private record LanguagePreset(boolean compiled,
+                                  String compilerPath,
+                                  String compilerFlags,
+                                  String runCommand,
+                                  String sourceFileName) {
+        static LanguagePreset forLanguage(LanguageType lt) {
+            if (lt == null) return null;
+            return switch (lt) {
+                case C      -> new LanguagePreset(true,  "gcc",   "-Wall -O2 -o main", "./main",          "main.c");
+                case JAVA   -> new LanguagePreset(true,  "javac", "",                  "java -cp . Main", "Main.java");
+                case PYTHON -> new LanguagePreset(false, "",      "",                  "python3 main.py", "main.py");
+                case OTHER  -> null;
+            };
+        }
     }
 }
