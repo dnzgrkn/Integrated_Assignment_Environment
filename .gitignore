@@ -29,3 +29,6 @@ local-*/
 
 # Maven Shade Plugin generated
 dependency-reduced-pom.xml
+
+# Installer Output
+installer-output/
