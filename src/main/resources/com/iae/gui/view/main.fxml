@@ -61,6 +61,7 @@
                             <SeparatorMenuItem/>
                             <MenuItem fx:id="menuImportConfig" text="Import Configuration..." onAction="#onImportConfiguration"/>
                             <MenuItem fx:id="menuExportConfig" text="Export Configuration..." onAction="#onExportConfiguration"/>
+                            <MenuItem fx:id="menuExportAllConfigs" text="Export All Configurations..." onAction="#onExportAllConfigurations"/>
                         </items>
                     </Menu>
                     <Menu text="Help">
