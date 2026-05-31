@@ -17,7 +17,10 @@ import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ChoiceDialog;
+import javafx.scene.control.Dialog;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListCell;
+import javafx.scene.control.ListView;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TableCell;
@@ -36,7 +39,11 @@ import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 
 public class MainController {
  private static final Logger log = LoggerFactory.getLogger(MainController.class);
@@ -50,6 +57,7 @@ public class MainController {
     @FXML private MenuItem menuManageConfigs;
     @FXML private MenuItem menuImportConfig;
     @FXML private MenuItem menuExportConfig;
+    @FXML private MenuItem menuExportAllConfigs;
     @FXML private MenuItem menuManual;
     @FXML private MenuItem menuAbout;
 
@@ -357,68 +365,42 @@ public class MainController {
     }
 
     private void openEditConfigurationDialog() {
-
+        List<Configuration> configs;
         try {
-
-            List<Configuration> configs = configRepo.loadAll();
-
-            if (configs.isEmpty()) {
-
-                showInfo(
-                        "No Configurations",
-                        null,
-                        "There are no configurations to edit."
-                );
-
-                return;
-            }
-
-            ChoiceDialog<Configuration> pickDialog =
-                    new ChoiceDialog<>(configs.get(0), configs);
-
-            pickDialog.setTitle("Edit Configuration");
-            pickDialog.setHeaderText("Select a configuration");
-            pickDialog.setContentText("Configuration:");
-
-            pickDialog.showAndWait().ifPresent(config -> {
-
-                try {
-
-                    FXMLLoader loader = new FXMLLoader(
-                            getClass().getResource(
-                                    "/com/iae/gui/view/config_editor.fxml")
-                    );
-
-                    Scene scene = new Scene(loader.load());
-
-                    ConfigEditorController controller =
-                            loader.getController();
-
-                    controller.setRepository(configRepo);
-
-                    controller.initEdit(config);
-
-                    Stage stage = new Stage();
-                    stage.setTitle("Edit Configuration");
-                    stage.setScene(scene);
-                    stage.showAndWait();
-
-                    if (controller.isSaved()) {
-
-                        setStatus("Edited configuration: "
-                                + controller.getResult().getName());
-                    }
-
-                } catch (IOException e) {
-
-                    showError("Configuration Error", e.getMessage());
-                }
-            });
-
+            configs = configRepo.loadAll();
         } catch (IOException e) {
-
             showError("Load Configurations Failed", e.getMessage());
+            return;
         }
+
+        if (configs.isEmpty()) {
+            showInfo("No Configurations", null, "There are no configurations to edit.");
+            return;
+        }
+
+        pickConfiguration("Edit Configuration", "Select a configuration to edit:", configs)
+                .ifPresent(config -> {
+                    try {
+                        FXMLLoader loader = new FXMLLoader(
+                                getClass().getResource("/com/iae/gui/view/config_editor.fxml"));
+                        Scene scene = new Scene(loader.load());
+
+                        ConfigEditorController controller = loader.getController();
+                        controller.setRepository(configRepo);
+                        controller.initEdit(config);
+
+                        Stage stage = new Stage();
+                        stage.setTitle("Edit Configuration");
+                        stage.setScene(scene);
+                        stage.showAndWait();
+
+                        if (controller.isSaved()) {
+                            setStatus("Edited configuration: " + controller.getResult().getName());
+                        }
+                    } catch (IOException e) {
+                        showError("Configuration Error", e.getMessage());
+                    }
+                });
     }
 
     @FXML
@@ -454,26 +436,113 @@ public class MainController {
             return;
         }
 
-        ChoiceDialog<Configuration> pick = new ChoiceDialog<>(configs.get(0), configs);
-        pick.setTitle("Export Configuration");
-        pick.setHeaderText("Select a configuration to export:");
-        pick.setContentText("Configuration:");
-        pick.showAndWait().ifPresent(chosen -> {
-            FileChooser saveChooser = new FileChooser();
-            saveChooser.setTitle("Export Configuration");
-            saveChooser.setInitialFileName(chosen.getName() + ".json");
-            saveChooser.getExtensionFilters().add(
-                    new FileChooser.ExtensionFilter("JSON files (*.json)", "*.json"));
-            File dest = saveChooser.showSaveDialog(getStage());
-            if (dest == null) return;
+        pickConfiguration("Export Configuration", "Select a configuration to export:", configs)
+                .ifPresent(chosen -> {
+                    FileChooser saveChooser = new FileChooser();
+                    saveChooser.setTitle("Export Configuration");
+                    saveChooser.setInitialFileName(chosen.getName() + ".json");
+                    saveChooser.getExtensionFilters().add(
+                            new FileChooser.ExtensionFilter("JSON files (*.json)", "*.json"));
+                    File dest = saveChooser.showSaveDialog(getStage());
+                    if (dest == null) return;
 
+                    try {
+                        configRepo.exportToFile(chosen, dest.toPath());
+                        setStatus("Configuration exported: " + chosen.getName());
+                    } catch (IOException e) {
+                        showError("Export Failed", e.getMessage());
+                    }
+                });
+    }
+
+    @FXML
+    private void onExportAllConfigurations() {
+        List<Configuration> configs;
+        try {
+            configs = configRepo.loadAll();
+        } catch (IOException e) {
+            showError("Export Failed", e.getMessage());
+            return;
+        }
+
+        if (configs.isEmpty()) {
+            showInfo("Export All Configurations", null, "No configurations to export.");
+            return;
+        }
+
+        DirectoryChooser dc = new DirectoryChooser();
+        dc.setTitle("Export all configurations to directory");
+        File dir = dc.showDialog(getStage());
+        if (dir == null) return;
+
+        int exported = 0;
+        List<String> failed = new ArrayList<>();
+        Set<String> usedNames = new HashSet<>();
+        for (Configuration c : configs) {
+            String base = sanitizeFileName(c.getName());
+            String fileName = base + ".json";
+            int suffix = 2;
+            while (!usedNames.add(fileName)) {
+                fileName = base + "_" + suffix + ".json";
+                suffix++;
+            }
+            Path target = dir.toPath().resolve(fileName);
             try {
-                configRepo.exportToFile(chosen, dest.toPath());
-                setStatus("Configuration exported: " + chosen.getName());
+                configRepo.exportToFile(c, target);
+                exported++;
             } catch (IOException e) {
-                showError("Export Failed", e.getMessage());
+                log.warn("Export failed for {}: {}", c.getName(), e.getMessage());
+                failed.add(c.getName());
+            }
+        }
+
+        if (failed.isEmpty()) {
+            showInfo("Export Complete", null,
+                    "Exported " + exported + " configuration(s) to " + dir.getAbsolutePath());
+        } else {
+            showError("Partial Export",
+                    "Exported " + exported + " of " + configs.size()
+                            + ". Failed: " + String.join(", ", failed));
+        }
+        setStatus("Exported " + exported + " configuration(s)");
+    }
+
+    private Optional<Configuration> pickConfiguration(String title, String header,
+                                                      List<Configuration> configs) {
+        Dialog<Configuration> dialog = new Dialog<>();
+        dialog.setTitle(title);
+        dialog.setHeaderText(header);
+        dialog.initOwner(getStage());
+
+        ListView<Configuration> list = new ListView<>();
+        list.getItems().setAll(configs);
+        list.setCellFactory(lv -> new ListCell<>() {
+            @Override
+            protected void updateItem(Configuration c, boolean empty) {
+                super.updateItem(c, empty);
+                if (empty || c == null) {
+                    setText(null);
+                } else {
+                    String lang = c.getLanguageType() != null ? c.getLanguageType().name() : "—";
+                    String mode = c.isCompiled() ? "compiled" : "interpreted";
+                    setText(c.getName() + "   [" + lang + " · " + mode + "]");
+                }
             }
         });
+        list.setPrefHeight(240);
+        list.setPrefWidth(380);
+        list.getSelectionModel().select(0);
+
+        dialog.getDialogPane().setContent(list);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        dialog.setResultConverter(bt ->
+                bt == ButtonType.OK ? list.getSelectionModel().getSelectedItem() : null);
+        return dialog.showAndWait();
+    }
+
+    private static String sanitizeFileName(String name) {
+        if (name == null || name.isBlank()) return "configuration";
+        return name.replaceAll("[\\\\/:*?\"<>|]", "_").trim();
     }
 
     @FXML
