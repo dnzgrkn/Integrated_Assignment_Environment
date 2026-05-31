@@ -230,8 +230,8 @@
         <p>The Integrated Assignment Environment works in four steps: it gets the work from the students it checks the work to make sure it is correct it runs the work to see what it does and then it compares the work to the right answers. The Integrated Assignment Environment is very flexible so students can use it with <strong>different programming languages</strong> like C and Java and also Python. The computer that the Integrated Assignment Environment is on needs to have the right tools to work with those languages.</p>
         <p>When students use the Integrated Assignment Environment their work is kept <strong>separate</strong>. So if one student has a problem, with their work like it is not working right or it is doing something the IAE will stop that problem and keep it from affecting anyone else. This means that even if something goes wrong the IAE will <strong>keep working and will not crash</strong>. It will finish all the work it needs to do.</p>
 
-        <div class="image-container">
-            [📸 Insert Screenshot Here: Application Main Window Overview]
+        <div style="text-align: center; margin: 25px 0;">
+            <img src="images/main-window.png" alt="Main Window" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 1px solid #cbd5e1;">
         </div>
     </div>
 
@@ -249,8 +249,8 @@
         <p>Here, you define the compiler executable path (<span class="badge">gcc</span>), essential compiler flags (<span class="badge">-Wall -o main</span>), the execution command (<span class="badge">./main</span>), and the exact expected source file name (<span class="badge">main.c</span>) that the software must extract from the student ZIPs. For interpreted languages like Python, simply uncheck the "Compiled Language" toggle to bypass the build stage.</p>
         <p>Because configurations are safely serialized as JSON files, they are highly portable. Use the <strong>Export Configuration</strong> button to share your rule-sets with colleagues, or use <strong>Import Configuration</strong> to load predefined templates and begin grading instantly.</p>
 
-        <div class="image-container">
-            [📸 Insert Screenshot Here: Configuration Editor Dialog]
+        <div style="text-align: center; margin: 25px 0;">
+            <img src="images/config-editor.png" alt="Main Window" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 1px solid #cbd5e1;">
         </div>
     </div>
 
@@ -260,8 +260,8 @@
         <p>A Project binds your language Configuration together with a specific batch of student submissions. Navigate to <strong>File &gt; New Project</strong> to begin. Assign your project a name and select your Configuration from the dropdown menu.</p>
         <p>Next, utilize the directory browser to locate your <strong>Submissions Directory</strong>—this folder must contain the raw student ZIP files. If the assignment requires external parameters to function, enter them into the Command-Line Arguments field. Lastly, carefully paste the exact expected console output into the text area; the system's text analysis engine will use this as the absolute truth for grading. Once saved, the project is stored locally as a <span class="badge">project_data.json</span> file, allowing you to close the application and seamlessly resume your session later via <strong>File &gt; Open Project</strong>.</p>
 
-        <div class="image-container">
-            [📸 Insert Screenshot Here: Project Editor Dialog]
+        <div style="text-align: center; margin: 25px 0;">
+            <img src="images/project-editor.png" alt="Main Window" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 1px solid #cbd5e1;">
         </div>
     </div>
 
@@ -321,8 +321,8 @@
             <p>If the engine reports that the source file is missing, the student may have named their file incorrectly (e.g., <code>Main.c</code> instead of <code>main.c</code>) inside the archive. The engine mandates exact naming conformity.</p>
         </div>
 
-        <div class="image-container">
-            [📸 Insert Screenshot Here: Results Table showing Detail Pane]
+        <div style="text-align: center; margin: 25px 0;">
+            <img src="images/test-results.png" alt="Main Window" style="max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 1px solid #cbd5e1;">
         </div>
     </div>
 
